@@ -1,0 +1,103 @@
+body {
+    background-color: #f9f9f9;
+    font-family: Arial, sans-serif;
+}
+
+.signup-container {
+    display: flex;
+    align-items: stretch;
+    min-height: 100vh;
+}
+
+.form-section {
+    flex: 1;
+    background-color: #fff;
+    padding: 40px;
+}
+
+.image-section {
+    flex: 1;
+    background-image: url('https://media.mktg.workday.com/is/image/workday/screenshot-inventory-dashboard-desktop-13?fmt=png-alpha&wid=1800');
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: start;
+    padding: 30px;
+    border-top-left-radius: 60px;
+    /* Curved top-left corner */
+    border-bottom-left-radius: 60px;
+    /* Curved bottom-left corner */
+    border-top-right-radius: 0;
+    /* Straight top-right corner */
+    border-bottom-right-radius: 0;
+    /* Straight bottom-right corner */
+}
+.testimonial {
+    color: #fff;
+    max-width: 70%;
+}
+
+.testimonial p {
+    font-size: 1.2rem;
+    line-height: 1.5;
+}
+
+.testimonial h6 {
+    font-size: 1rem;
+    margin-top: 10px;
+    font-weight: normal;
+}
+
+
+.container
+{
+max-width: 80%;
+padding: 3%;
+}
+/* Change button color to violet */
+.btn-primary {
+    background-color: #2bd0e2;
+    /* Violet color */
+    border-color: #2bbae2;
+    /* Violet border */
+}
+
+.btn-primary:hover {
+    background-color: #22b3b3;
+    /* Darker shade of violet for hover */
+    border-color: #22b3b1;
+    /* Darker shade for hover border */
+}
+
+/* Remove blue background color on input focus */
+input:focus {
+    background-color: transparent;
+    /* No background color */
+    outline: none;
+    /* Removes outline */
+    box-shadow: none;
+    /* Removes shadow */
+    border-color: #2bb7e2;
+    /* Optional: Add violet border on focus */
+}
+
+/* Optional: Adjust the border color on input hover */
+input:hover {
+    border-color: #2bd0e2;
+    /* Violet border on hover */
+}
+.login-link {
+    text-decoration: underline;
+    /* Underlined text */
+    color: rgb(0, 211, 176);
+    /* Violet text color */
+    cursor: pointer;
+    /* Pointer cursor for better UX */
+}
+
+.login-link:hover {
+    color: rgb(130, 215, 238);
+    /* Optional: Slightly darker shade on hover */
+}
