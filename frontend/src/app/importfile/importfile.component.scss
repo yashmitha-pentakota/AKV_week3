@@ -1,0 +1,82 @@
+.files {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  position: relative;
+  width: 100%;
+}
+
+.back-button {
+  position: absolute;
+  left: 20px; /* Keeps the button at the left side */
+  top: 0;
+}
+
+/* Styling for table and headers */
+.file-status-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.file-status-table th, .file-status-table td {
+  padding: 15px;
+  text-align: center;
+}
+
+.file-status-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+/* Styling for the file status column */
+.status-label {
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+.status-complete {
+  color: rgb(51, 171, 24);
+  // background-color: #28a745; /* Green */
+}
+
+.status-error {
+  color: rgb(225, 18, 18);
+  // background-color: #dc3545; /* Red */
+}
+
+.status-pending {
+  color: rgb(252, 220, 13);
+  // background-color: #ffc107; /* Orange */
+}
+
+button {
+  font-size: 14px;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  opacity: 0.8;
+}
+
+/* Styling for back button */
+.back-button button {
+  padding: 10px 20px;
+  background-color: #3fd0e3;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.back-button button:hover {
+  background-color: #0056b3;
+}

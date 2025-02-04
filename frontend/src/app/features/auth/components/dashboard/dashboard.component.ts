@@ -9,7 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { jsPDF } from 'jspdf';
 import * as bootstrap from 'bootstrap';
 import { Observable } from 'rxjs';
-
+import { Router}  from '@angular/router';
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
@@ -92,7 +92,7 @@ isModalOpenprofile=false;
   //files import
   file: File | null = null;
 
-  constructor(private http: HttpClient, private fb: FormBuilder) {
+  constructor(private http: HttpClient, private fb: FormBuilder , private router: Router) {
     this.addProductForm = this.fb.group({
       productName: ['', Validators.required],
       category: ['', Validators.required],
@@ -266,8 +266,10 @@ isModalOpenprofile=false;
   }
 
   toggleFilters() {
+    if (this.isModalOpen) return;// Prevent filter from opening when modal is active
     this.showFilters = !this.showFilters;
   }
+  
 
 // In onSearch:
 
@@ -813,15 +815,19 @@ getFilteredProducts(searchTerm: string, columns: string): void {
 
   // Open modal to upload profile photo
   openProfilePhotoModal() {
-    this.isModalOpen = true; // Show modal
+    this.isModalOpen = true; 
+    document.body.classList.add('modal-open'); // Prevents background interaction
   }
+  
   openModal() {
     this.isModalOpen = false;
   }
   // Close the modal
   closeModal() {
-    this.isModalOpen = false; // Hide modal
+    this.isModalOpen = false; 
+    document.body.classList.remove('modal-open'); // Restore normal behavior
   }
+  
 
   // Handle file selection
   //The onFileChange method is an event handler that is triggered whenever the user selects a file using the <input type="file"> element.
@@ -909,47 +915,30 @@ getFilteredProducts(searchTerm: string, columns: string): void {
       alert('Please select a file first.');
       return;
     }
-    const reader = new FileReader();
-
-    // Read the file
-    reader.onload = (e: any) => {
-      try {
-        const workbook = XLSX.read(e.target.result, { type: 'binary' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-        console.log('File data as JSON:', jsonData);
-
-        // Post the JSON data to the backend
-        this.http
-          .post(`${environment.apiUrl}/auth/import`, jsonData)
-          .subscribe({
-            next: (response: any) => {
-              alert('Files uploaded and data imported successfully.');
-              console.log('Response:', response);
-              this.loadProducts();
-              // Optionally refresh data
-              // this.getProducts();
-            },
-            error: (error) => {
-              console.error('Error uploading files:', error);
-              alert('Failed to upload files.');
-            },
-          });
-      } catch (error) {
-        console.error('Error processing file:', error);
-        alert('Invalid file format.');
-      }
-    };
-
-    // Read the first file as a binary string
-    reader.readAsBinaryString(this.selectedFile);
+    console.log('***',this.selectedFile);
+   
+    const formData = new FormData();
+    formData.append('file', this.selectedFile);
+   
+    this.http.post(`${environment.apiUrl}/auth/import`, formData).subscribe({
+      next: (response: any) => {
+        alert('File uploaded successfully, processing in background.');
+        console.log('Response:', response);
+      },
+      error: (error) => {
+        console.error('Error uploading file:', error);
+        alert('Failed to upload file.');
+      },
+    });
   }
 
   // Wrapper function for button click
   uploadFilesImport(): void {
     this.uploadFilesforimport();
+  }
+
+  navigateToImportFile() {
+    this.router.navigate(['/importfile']);
   }
 }
 export interface product {

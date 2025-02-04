@@ -10,6 +10,8 @@ const logger = require('./middleware/loggers/loggers');
 dotenv.config();
 const app = express();
 const cartRoutes = require('./routes');
+require('./workers/importProcessor');  // Import the background worker to process the files
+const {processPendingFiles}=require('./cronJobs');
 // Middleware
 app.use(bodyParser.json());
 app.use(cors());
@@ -31,8 +33,8 @@ logger.info(`User with ID ${userId} has logged in`);
 const connection = mysql.createConnection({
   host: 'localhost',      
   user: 'root',         
-  password: '',           
-  database: 'inventory'  
+  password: 'Yashu@123',           
+  database: 'inventoryy'  
 });
 
 connection.connect((err) => {
@@ -50,6 +52,15 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    
+   
+    // Ensure the function is called correctly
+    setImmediate(() => processPendingFiles());
+
+    // Set interval to run every 10 minutes
+    setInterval(() => processPendingFiles(), 10 * 60 * 1000);
+});

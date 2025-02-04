@@ -5,7 +5,8 @@ const authenticate = require('../middleware/jwt/authenticate');
 const jwtAuth = require('../middleware/jwt/jwtAuth');
 const multer = require('multer');
 const cartController = require('../controllers/cartController');
-
+const { uploadFile} = require('../controllers/importController');
+const { processFile} = require('../workers/importProcessor');
 // Set up multer for file uploads
 const storage = multer.memoryStorage(); 
 const upload = multer({ storage: storage });
@@ -31,5 +32,9 @@ router.get('/cart', authenticate, cartController.getCartItems);
 router.post('/cart/update', authenticate, cartController.updateCartItemQuantity);
 router.delete('/delete-cart-item/:cartId', authenticate, cartController.deleteCartItem);
 
+// File upload route with authentication
 router.post('/import', authenticate, upload.single('file'), authController.importFile);
+
+router.get('/retrieve-files',authenticate,authController.retrieveFiles);
+
 module.exports = router;

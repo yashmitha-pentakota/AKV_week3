@@ -15,10 +15,14 @@ import { from } from 'rxjs';
 import { FileService } from 'src/app/core/services/file.service';
 import { saveAs } from 'file-saver';
 import { FileUploadComponent } from './features/auth/components/dashboard/fileupload/fileupload.component';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, Routes } from '@angular/router';
 import { rootCertificates } from 'tls';
 import { CommonModule } from '@angular/common';
+import { ImportfileComponent} from './importfile/importfile.component';
 
+const routes: Routes = [
+  { path: 'importfile', component: ImportfileComponent }
+];
 @NgModule({
   declarations: [
     AppComponent,
@@ -26,6 +30,7 @@ import { CommonModule } from '@angular/common';
     LoginComponent,
     DashboardComponent,
     FileUploadComponent,
+    ImportfileComponent,
   ],
   imports: [
     BrowserModule,
@@ -36,8 +41,10 @@ import { CommonModule } from '@angular/common';
      FormsModule,
      ToastrModule.forRoot(),
      CommonModule,
-     ReactiveFormsModule
+     ReactiveFormsModule,
+     RouterModule.forRoot(routes)
   ],
+  exports: [RouterModule],
   providers: [{ provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },],
   bootstrap: [AppComponent]
 })

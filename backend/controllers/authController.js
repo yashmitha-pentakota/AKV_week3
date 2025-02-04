@@ -11,18 +11,39 @@ const categoryModel = require('../models/categoryModel');
 const knex = require('../mysql/connection');
 const productToVendorModel = require('../models/productToVendor');
 const cartsModel = require('../models/cartsModel');
-
+const crypto=require('crypto');
 dotenv.config();
 
+ 
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+   
   },
-});
+}); 
+async function uploadToS3(fileBuffer, fileName, mimeType, userId) {
+  const params = {
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: `yash@0768/${userId}/${fileName}`,
+    Body: fileBuffer,
+    ContentType: mimeType,
+  };
+ 
+  try {
+    const command = new PutObjectCommand(params);
+    const data = await s3.send(command);
+    return `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+  } catch (error) {
+    console.error('Error uploading file to S3:', error);
+    throw new Error('Failed to upload file to S3');
+  }
+}
 
 module.exports = {
+  uploadToS3,
+  
   async signup(req, res, next) {
     try {
       const { error } = signupValidation.validate(req.body);
@@ -360,93 +381,65 @@ module.exports = {
       return res.status(500).json({ message: 'Failed to delete product', error: error.message });
     }
   },
+
+  
+
    // Import data controller
-async importFile(req, res) {
-  const products = req.body; // Assuming express.json() middleware handles JSON parsing
-
-  if (!Array.isArray(products)) {
-    return res.status(400).json({ error: 'Invalid JSON format: Expected an array' });
-  }
-
-  console.log("products: ", products);
-
-  try {
-    for (let product of products) {
-      // Check if the category exists
-      let category = await knex('categories').where('category_name', product.category_name).first();
-      if (!category) {
-        const [categoryId] = await knex('categories').insert({
-          category_name: product.category_name,
-          description: product.category_description || '',
-          status: '1' // Active
-        });
-        category = { category_id: categoryId }; // Manually create the object
+   async importFile(req, res) {
+    try {
+      const { file } = req;
+      const userId = req.user.id;
+   
+      if (!file || !userId) {
+        return res.status(400).json({ error: 'File or User ID missing' });
       }
-
-      // Check if the vendor exists
-      let vendor = await knex('vendors').where('vendor_name', product.vendorName).first();
-      if (!vendor) {
-        const [vendorId] = await knex('vendors').insert({
-          vendor_name: product.vendorName,
-          contact_name: product.vendor_contact_name || '',
-          address: product.vendor_address || '',
-          city: product.vendor_city || '',
-          postal_code: product.vendor_postal_code || '',
-          country: product.vendor_country || '',
-          phone: product.vendor_phone || '',
-          status: '1' // Active
-        });
-        vendor = { vendor_id: vendorId }; // Manually create the object
-      }
-
-      // Insert the product if it doesn't exist
-      let existingProduct = await knex('products').where('product_name', product.product_name).first();
-      if (!existingProduct) {
-        const [productId] = await knex('products').insert({
-          product_name: product.product_name,
-          category_id: category.category_id, // Reference to category
-          quantity_in_stock: product.quantity_in_stock || 0,
-          unit_price: product.unit_price || 0,
-          product_image: product.product_image || '',
-          unit: product.unit || '',
-          status: '1' // Active
-        });
-        existingProduct = { product_id: productId }; // Manually create the object
-      }
-
-      console.log("existing product", existingProduct);
-
-      // Update or insert into product_to_vendor table
-      const productVendorAssociation = await knex('product_to_vendor')
-        .where({
-          product_id: existingProduct.product_id,
-          vendor_id: vendor.vendor_id
-        })
-        .first();
-
-      if (!productVendorAssociation) {
-        await knex('product_to_vendor').insert({
-          product_id: existingProduct.product_id,
-          vendor_id: vendor.vendor_id,
-          status: '1' // Active
-        });
-      } else {
-        // Optional: Update the status if the association already exists
-        await knex('product_to_vendor')
-          .where({
-            product_id: existingProduct.product_id,
-            vendor_id: vendor.vendor_id
-          })
-          .update({
-            status: '1' // Active
-          });
-      }
+   
+       // Compute file checksum (SHA-256)
+       const hash = crypto.createHash('sha256').update(file.buffer).digest('hex');
+       console.log('hash',hash);
+   
+   
+      // Upload the file to S3
+      const fileUrl = await uploadToS3(file.buffer, file.originalname, file.mimetype, userId);
+   
+      // Insert into import_files table with "pending" status
+      const [fileId] = await knex('import_files').insert({
+        user_id: userId,
+        file_url: fileUrl,
+        file_name: file.originalname,
+        checksum: hash,
+        status: 'pending',
+      });
+   
+      res.status(200).json({ message: 'File uploaded successfully, processing in background.', fileId, fileUrl });
+   
+    } catch (error) {
+      console.error('Error importing file:', error);
+      res.status(500).json({ error: 'File import failed' });
     }
+    },
 
-    res.status(200).json({ message: 'Data imported successfully' });
-  } catch (error) {
-    console.error('Error importing data:', error);
-    res.status(500).json({ error: 'Error importing data' });
-  }
-}
+    async retrieveFiles(req, res) {
+      try {
+        // Assuming user ID is stored in req.user (after authentication)
+        const userId = req.user.id;
+        console.log('user id :::', userId);
+       
+        // Fetch the import files for the logged-in user
+        const importFiles = await knex('import_files')
+          .where('user_id', userId)
+          .select('id', 'file_name', 'status', 'error_file_url');
+     
+     
+          console.log('****',importFiles);
+       
+        // Return the data as JSON response
+        res.json(importFiles);
+      } catch (error) {
+        console.error('Error fetching import files:', error);
+        res.status(500).json({ error: 'Failed to fetch import files' });
+      }
+    },
+
+ 
 };

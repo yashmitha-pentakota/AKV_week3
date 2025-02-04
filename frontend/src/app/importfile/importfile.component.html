@@ -1,0 +1,40 @@
+<div class="files container-fluid">
+  <div class="back-button">
+      <button (click)="redirecttodashboard()">Back</button>
+  </div>
+
+  <div>
+      <h2>File Status</h2>
+  </div>
+</div>
+
+<div class="container mt-5">
+  <table class="table table-bordered file-status-table">
+      <thead>
+          <tr>
+              <th>File Name</th>
+              <th>File Status</th>
+              <th>Error File</th>
+          </tr>
+      </thead>
+      <tbody>
+          <tr *ngFor="let file of importFiles">
+              <td>{{ file.file_name }}</td>
+              <td>
+                  <span [ngClass]="{
+                      'status-complete': file.status === 'completed',
+                      'status-error': file.status === 'error',
+                      'status-pending': file.status === 'pending'
+                  }" class="status-label">
+                      {{ file.status }}
+                  </span>
+              </td>
+              <td>
+                  <button *ngIf="file.status === 'error'" (click)="downloadErrorFile(file.error_file_url)">
+                      Download Error File
+                  </button>
+              </td>
+          </tr>
+      </tbody>
+  </table>
+</div>
