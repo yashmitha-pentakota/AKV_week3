@@ -20,6 +20,8 @@ import { rootCertificates } from 'tls';
 import { CommonModule } from '@angular/common';
 import { ImportfileComponent} from './importfile/importfile.component';
 import { ChatComponent } from './features/chat/chat.component';
+import { ResetPasswordComponent } from './features/auth/components/reset-password/reset-password.component';
+import { ForgotPasswordComponent } from './features/auth/components/forgot-password/forgot-password.component';
 
 const routes: Routes = [
   { path: 'importfile', component: ImportfileComponent }
@@ -33,6 +35,8 @@ const routes: Routes = [
     FileUploadComponent,
     ImportfileComponent,
     ChatComponent,
+    ResetPasswordComponent,
+    ForgotPasswordComponent,
   ],
   imports: [
     BrowserModule,

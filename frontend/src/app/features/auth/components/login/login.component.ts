@@ -55,7 +55,9 @@ email: ['', [Validators.required, Validators.email]],
       );
     }
   }
-
+  redirectToForgotPassword(): void {
+    this.router.navigate(['/forgot-password']);
+  }
   redirectToRegister(): void {
     this.router.navigate(['/register']);
   }

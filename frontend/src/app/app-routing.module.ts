@@ -7,6 +7,8 @@ import { DashboardComponent } from './features/auth/components/dashboard/dashboa
 import { AuthGuard } from './core/authguards/auth.guard';
 import { ImportfileComponent } from './importfile/importfile.component';
 import { ChatComponent } from './features/chat/chat.component';
+import { ResetPasswordComponent } from './features/auth/components/reset-password/reset-password.component';
+import { ForgotPasswordComponent } from './features/auth/components/forgot-password/forgot-password.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -14,6 +16,8 @@ const routes: Routes = [
   { path: 'dashboard', component: DashboardComponent, canActivate: [AuthGuard] },
   { path: 'importfile', component: ImportfileComponent, canActivate: [AuthGuard] },
   {path : 'chat', component : ChatComponent ,canActivate: [AuthGuard]},  // Protected route
+   { path: 'forgot-password', component: ForgotPasswordComponent },
+   { path: 'reset-password', component: ResetPasswordComponent },
   { path: '', redirectTo: '/register', pathMatch: 'full' },
   { path: '**', redirectTo: '/login' },
 ];

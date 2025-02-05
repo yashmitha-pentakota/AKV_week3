@@ -12,6 +12,11 @@ const upload = multer({ storage: storage });
 
 router.post('/signup', authController.signup);
 router.post('/login', authController.login);
+// Reset Password Request Route (Send Reset Email)
+router.post('/forgot-password', authController.forgotPassword);
+
+// Reset Password Route (Update the password)
+router.post('/reset-password', authController.resetPassword);
 router.get('/user-details', authenticate, authController.getUserDetails);
 router.post('/upload-profile-photo', jwtAuth, upload.single('profile_pic'), authController.uploadProfilePhoto);
 router.get('/vendors/count', authenticate, authController.getVendorCount);

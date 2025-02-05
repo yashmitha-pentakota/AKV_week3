@@ -20,5 +20,14 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/auth/login`, credentials);
     console.log("credentials------",credentials);
   }
+  // Add this method to the AuthService
+resetPassword(passwordData: any): Observable<any> {
+  return this.http.post(`${this.apiUrl}/auth/reset-password`, passwordData);
+}
+// Add forgot password API method
+forgotPassword(emailData: any): Observable<any> {
+  return this.http.post(`${this.apiUrl}/auth/forgot-password`, emailData);
+}
+
   
 }

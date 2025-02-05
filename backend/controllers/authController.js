@@ -13,6 +13,7 @@ const productToVendorModel = require('../models/productToVendor');
 const cartsModel = require('../models/cartsModel');
 const crypto=require('crypto');
 dotenv.config();
+const nodemailer = require('nodemailer');
 
  
 const s3 = new S3Client({
@@ -43,16 +44,16 @@ async function uploadToS3(fileBuffer, fileName, mimeType, userId) {
 
 module.exports = {
   uploadToS3,
-  
   async signup(req, res, next) {
     try {
       const { error } = signupValidation.validate(req.body);
       if (error) return res.status(400).json({ message: error.details[0].message });
-
+  
       const { first_name, last_name, email, password } = req.body;
       const hashedPassword = await bcrypt.hash(password, 10);
       const username = `${first_name} ${last_name}`;
-
+  
+      // Create a new user
       await userModel.createUser({
         first_name,
         last_name,
@@ -60,28 +61,93 @@ module.exports = {
         password: hashedPassword,
         username,
       });
-
+  
       res.status(201).json({ message: 'User created successfully' });
     } catch (err) {
       next(err);
     }
   },
-
   async login(req, res, next) {
     try {
       const { email, password } = req.body;
       const user = await userModel.findByEmail(email);
       if (!user) return res.status(404).json({ message: 'User not found' });
-
+  
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) return res.status(401).json({ message: 'Invalid credentials' });
-
+  
       const token = jwt.sign({ id: user.user_id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
       res.status(200).json({ token, user });
     } catch (err) {
       next(err);
     }
   },
+  async forgotPassword(req, res, next) {
+    try {
+      const { email } = req.body;
+      const user = await userModel.findByEmail(email);
+  
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetLink = `${process.env.FRONTEND_URL.trim()}/reset-password?token=${resetToken}`;
+
+      await userModel.saveResetToken(email, resetToken);
+  
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+  
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Password Reset',
+        html: `<p>Click <a href="${resetLink}">here</a> to reset your password.</p>`,
+      };
+      console.log("Reset Token:", resetToken);  // In forgotPassword function
+
+      // Use async-await for sending email
+      await transporter.sendMail(mailOptions);
+      res.status(200).json({ message: 'Password reset link sent successfully' });
+  
+    } catch (err) {
+      console.error(err); // Log error to understand what went wrong
+      next(err); // Call next middleware (error handling)
+    }
+  }
+,async resetPassword(req, res, next) {
+  try {
+    const { token, newPassword } = req.body;
+
+    // Validate new password (add your custom validation logic here)
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+    }
+
+    const user = await userModel.findByResetToken(token);
+
+    if (!user) {
+      return res.status(404).json({ message: 'Invalid or expired token' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await userModel.updatePassword(user.email, hashedPassword);
+
+    await userModel.clearResetToken(user.email);
+   
+    res.status(200).json({ message: 'Password successfully updated' });
+  } catch (err) {
+    console.error(err); // Log error
+    next(err); // Call next middleware (error handling)
+  }
+},
 
   async getUserDetails(req, res, next) {
     try {
