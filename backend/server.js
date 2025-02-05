@@ -44,7 +44,7 @@ io.on('connection', (socket) => {
     socket.username = username;
     onlineUsers.push(username);
     io.emit('onlineUsers', onlineUsers);
-    io.emit('message', { sender: 'System', content: `${username} has joined the chat` });
+    io.emit('message', { sender: '', content: `${username} has joined the chat` });
   });
 
   socket.on('leaveRoom', () => {
@@ -53,7 +53,7 @@ io.on('connection', (socket) => {
       onlineUsers.splice(index, 1);
     }
     io.emit('onlineUsers', onlineUsers);
-    io.emit('message', { sender: 'System', content: `${socket.username} has left the chat` });
+    io.emit('message', { sender: '', content: `${socket.username} has left the chat` });
   });
 
   socket.on('sendMessage', (message, username) => {

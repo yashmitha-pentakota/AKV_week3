@@ -24,8 +24,8 @@
     font-weight: bold;
     border-bottom: 4px solid hsl(0, 71%, 85%);
 }
-
 /* Messages Container */
+/* Ensure messages container uses flex */
 .messages-container {
     flex-grow: 1;
     overflow-y: auto;
@@ -33,36 +33,38 @@
     background: white;
     color: black;
     border-radius: 0 0 12px 12px;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Message Styling */
+/* User Message Styling (Left-aligned) */
 .user-message {
     background: #d0e7f9;  /* Light blue background */
     color: black;         /* Black text color */
     padding: 10px 15px;   /* Padding around the message */
     border-radius: 12px;  /* Rounded corners for the message */
     margin-bottom: 8px;   /* Space between messages */
-    text-align: right;    /* Align message text to the right */
-    margin-left: auto;    /* Push the message to the right */
-    max-width: 80%;       /* Optional: to limit the width of the message */
-    word-wrap: break-word; /* Ensures text wraps within the container */
-    display: inline-block; /* Background size adjusts to text */
+    text-align: left;     /* Align text to the left */
+    max-width: 60%;       /* Limit message width */
+    word-wrap: break-word; /* Ensures text wraps properly */
+    display: inline-block; /* Background adjusts to text size */
+    align-self: flex-start; /* Ensures message aligns to the left */
 }
 
-/* System Message Styling */
+/* System Message Styling (Centered) */
 .system-message {
     background: #ffeeba;   /* Soft yellow background */
     color: black;          /* Black text */
     padding: 10px 15px;    /* Padding around the message */
     border-radius: 12px;   /* Rounded corners */
-    margin: 15px auto;     /* Center the message with space above and below */
-    text-align: center;    /* Center the text */
-    width: fit-content;    /* Ensure the background adjusts to the message size */
-    display: inline-block; /* Makes the background size fit the content */
-    max-width: 80%;        /* Optional: limits the width of the message */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: small shadow for a lifted effect */
+    margin: 15px auto;     /* Centers the message */
+    text-align: center;    /* Centers text */
+    width: fit-content;    /* Background adjusts to text size */
+    max-width: 60%;        /* Prevents overly wide messages */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional shadow effect */
+    display: flex;         /* Ensures proper centering */
+    align-self: center;    /* Centers the message in the flex container */
 }
-
 
 /* Fixed Bottom Sections */
 .fixed-bottom {
@@ -131,7 +133,7 @@
     position: absolute;
     top: 10px;
     right: 10px;
-    background: #42edf0;
+    background: #8ad2e7;
     color: white;
     border: none;
 }
