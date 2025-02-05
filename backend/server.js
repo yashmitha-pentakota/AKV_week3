@@ -13,9 +13,10 @@ const { processPendingFiles } = require('./cronJobs');
 const http = require('http');
 const socketIo = require('socket.io');
 const chatController = require('./controllers/chatController');
+const swaggerSetup = require('./controllers/swagger');  // Adjust the path as needed
 
 // Middleware
-
+swaggerSetup(app);
 // **Create HTTP Server**
 const server = http.createServer(app);
 const io = socketIo(server, {
