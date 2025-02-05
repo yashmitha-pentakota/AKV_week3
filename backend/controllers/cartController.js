@@ -107,51 +107,77 @@ async function moveToCart(req, res) {
 async function getCartItems(req, res) {
     try {
         const { page = 1, limit = 5 } = req.query;
+       
         const offset = (page - 1) * limit;
         const userId = req.user.id;
-
+        console.log("userId in cartitems : ", userId);
+    
+        // Fetch the total count of cart items for the user where quantity > 0 and product is available
         const totalItemsQuery = knex('carts')
-            .count('* as total')
-            .where('user_id', userId)
-            .join('products', 'carts.product_id', '=', 'products.product_id')
-            .andWhere('products.status', '=', 1)
-            .first();
-
+          .count('* as total')
+          .where('user_id', userId)
+          .andWhere('quantity', '>', 0) // Ensure quantity is greater than 0
+          .join('products', 'carts.product_id', '=', 'products.product_id')
+          .andWhere('products.status', '=', 1) // Ensure the product is available
+          .first();
+    
         const cartItemsQuery = knex('carts')
-            .join('products', 'carts.product_id', '=', 'products.product_id')
-            .join('categories', 'products.category_id', '=', 'categories.category_id')
-            .join('vendors', 'carts.vendor_id', '=', 'vendors.vendor_id')
-            .select(
-                'carts.id',
-                'products.product_id',
-                'products.product_name',
-                'products.product_image',
-                'categories.category_name',
-                'vendors.vendor_name',
-                'carts.quantity',
-                'products.quantity_in_stock'
-            )
-            .where('carts.user_id', userId)
-            .andWhere('products.status', '=', 1)
-            .limit(limit)
-            .offset(offset);
-
+      .join('products', 'carts.product_id', '=', 'products.product_id')
+      .join('categories', 'products.category_id', '=', 'categories.category_id')
+      .join('product_to_vendor', function () {
+        this.on('products.product_id', '=', 'product_to_vendor.product_id')
+          .andOn('carts.vendor_id', '=', 'product_to_vendor.vendor_id'); // Ensure cart's vendor matches
+      })
+      .join('vendors', 'product_to_vendor.vendor_id', '=', 'vendors.vendor_id')
+      .select(
+        'carts.id',
+        'products.product_id',
+        'products.product_name',
+        'products.product_image',
+        'categories.category_name',
+        'vendors.vendor_name',
+        'carts.quantity',
+        'carts.quantity as initialQuantity',
+        'products.quantity_in_stock'
+      )
+      .where('carts.user_id', userId)  // Replace userId with the actual user ID or a parameter
+      .andWhere('carts.quantity', '>', 0) // Ensure quantity is greater than 0
+      .andWhere('products.status', '=', 1) // Ensure the product is available
+      .limit(limit) // Limit the number of results
+      .offset(offset) // Offset the results for pagination
+      .debug(); // Debugging to see the SQL query
+    
+    
+        // Execute both queries in parallel
         const [totalResult, cartItems] = await Promise.all([totalItemsQuery, cartItemsQuery]);
-
-        if (!totalResult?.total || cartItems.length === 0) {
-            return res.status(404).json({ success: false, message: 'No cart items found for this user' });
-        }
-
-        res.json({
+    
+         console.log('totalResult:', totalResult);
+        console.log('cartItems:', cartItems);
+       
+        
+        // If no cart items are found for the user, respond with an empty list
+        if (!totalResult.total || cartItems.length === 0) {
+          return res.status(200).json({
             success: true,
-            total: totalResult.total,
+            total: 0,
             page: Number(page),
             limit: Number(limit),
-            products: cartItems,
+            products: [],
+          });
+        }
+    
+        // Return the cart items and total count
+        res.json({
+          success: true,
+          total: totalResult.total,
+          page: Number(page),
+          limit: Number(limit),
+          products: cartItems,
         });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Internal Server Error', details: error.message });
-    }
+      } catch (error) {
+        console.error('Error fetching cart items:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+      }
 }
 
 // Update cart item quantities

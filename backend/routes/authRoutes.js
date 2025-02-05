@@ -5,7 +5,6 @@ const authenticate = require('../middleware/jwt/authenticate');
 const jwtAuth = require('../middleware/jwt/jwtAuth');
 const multer = require('multer');
 const cartController = require('../controllers/cartController');
-const { uploadFile} = require('../controllers/importController');
 const { processFile} = require('../workers/importProcessor');
 // Set up multer for file uploads
 const storage = multer.memoryStorage(); 

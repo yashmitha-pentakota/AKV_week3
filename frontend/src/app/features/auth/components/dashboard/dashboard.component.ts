@@ -10,6 +10,10 @@ import { jsPDF } from 'jspdf';
 import * as bootstrap from 'bootstrap';
 import { Observable } from 'rxjs';
 import { Router}  from '@angular/router';
+import { ChatService } from 'src/app/core/services/chat.service';
+
+
+
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
@@ -50,6 +54,7 @@ export class DashboardComponent implements OnInit {
     'Quantity',
     'Unit',
   ];
+
 
   //search
   showFilters: boolean = false;
@@ -92,7 +97,7 @@ isModalOpenprofile=false;
   //files import
   file: File | null = null;
 
-  constructor(private http: HttpClient, private fb: FormBuilder , private router: Router) {
+  constructor(private http: HttpClient, private fb: FormBuilder , private router: Router ) {  //,private chatService: ChatService
     this.addProductForm = this.fb.group({
       productName: ['', Validators.required],
       category: ['', Validators.required],
@@ -113,6 +118,13 @@ isModalOpenprofile=false;
     this.getCategories();
     this.getVendors();
     this.fetchCartPage(this.currentCartPage);
+  }
+
+  //chat 
+
+  // Function to toggle chat visibility
+  navigateToChat(): void {
+    this.router.navigate(['/chat']) // Navigate to the chat component
   }
   // Handle file selection
   onFileSelect(event: any): void {

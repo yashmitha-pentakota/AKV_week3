@@ -19,6 +19,7 @@ import { Router, RouterModule, Routes } from '@angular/router';
 import { rootCertificates } from 'tls';
 import { CommonModule } from '@angular/common';
 import { ImportfileComponent} from './importfile/importfile.component';
+import { ChatComponent } from './features/chat/chat.component';
 
 const routes: Routes = [
   { path: 'importfile', component: ImportfileComponent }
@@ -31,6 +32,7 @@ const routes: Routes = [
     DashboardComponent,
     FileUploadComponent,
     ImportfileComponent,
+    ChatComponent,
   ],
   imports: [
     BrowserModule,

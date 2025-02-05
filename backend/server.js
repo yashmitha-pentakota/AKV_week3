@@ -4,22 +4,81 @@ const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const routes = require('./routes');
-const sharp = require('sharp'); 
 const mysql = require('mysql2');
 const logger = require('./middleware/loggers/loggers');
 dotenv.config();
 const app = express();
-const cartRoutes = require('./routes');
-require('./workers/importProcessor');  // Import the background worker to process the files
-const {processPendingFiles}=require('./cronJobs');
+const cartRoutes = require('./routes'); 
+const { processPendingFiles } = require('./cronJobs');
+const http = require('http');
+const socketIo = require('socket.io');
+const chatController = require('./controllers/chatController');
+
 // Middleware
+
+// **Create HTTP Server**
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "http://localhost:4200",  // Allow requests from the frontend
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+    credentials: true  // Allow credentials if needed (e.g., for cookies or sessions)
+  },
+  transports: ['websocket', 'polling']  // WebSocket as the primary transport
+});
+
 app.use(bodyParser.json());
 app.use(cors());
 app.use(morgan('dev'));
 app.use(bodyParser.urlencoded({ extended: true })); 
 app.use(cartRoutes);
 
-// importing files
+const onlineUsers = [];
+
+// **Socket.io Logic**
+io.on('connection', (socket) => {
+  console.log(`A user connected: ${socket.id}`);
+
+  socket.on('joinRoom', (username) => {
+    socket.username = username;
+    onlineUsers.push(username);
+    io.emit('onlineUsers', onlineUsers);
+    io.emit('message', { sender: 'System', content: `${username} has joined the chat` });
+  });
+
+  socket.on('leaveRoom', () => {
+    const index = onlineUsers.indexOf(socket.username);
+    if (index > -1) {
+      onlineUsers.splice(index, 1);
+    }
+    io.emit('onlineUsers', onlineUsers);
+    io.emit('message', { sender: 'System', content: `${socket.username} has left the chat` });
+  });
+
+  socket.on('sendMessage', (message, username) => {
+    console.log(message);
+    io.emit('message', { sender: username, content: message.content });
+  });
+
+  socket.on('typing', (username) => {
+    socket.broadcast.emit('userTyping', username);
+  });
+
+  socket.on('stopTyping', () => {
+    socket.broadcast.emit('userStopTyping');
+  });
+
+  socket.on('disconnect', () => {
+    const index = onlineUsers.indexOf(socket.username);
+    if (index > -1) {
+      onlineUsers.splice(index, 1);
+    }
+    io.emit('onlineUsers', onlineUsers);
+    console.log(`User ${socket.id} disconnected`);
+  });
+});
+
 
 app.use('/api/cart', cartRoutes);
 
@@ -52,9 +111,9 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = 5001;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     
    
@@ -64,3 +123,4 @@ app.listen(PORT, () => {
     // Set interval to run every 10 minutes
     setInterval(() => processPendingFiles(), 10 * 60 * 1000);
 });
+

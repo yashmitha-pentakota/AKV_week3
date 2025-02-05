@@ -1,0 +1,35 @@
+<div class="chat-container">
+    <!-- Title section -->
+    <h2 class="chat-title">Live Chat</h2>
+
+    <!-- Chat messages display -->
+    <div class="messages-container" id="chatContainer">
+        <div *ngFor="let message of messages">
+            <div [ngClass]="{'user-message': message.sender !== 'System', 'system-message': message.sender === 'System'}">
+                <strong>{{ message.sender }}:</strong> {{ message.content }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Name Input (when joining) -->
+    <div *ngIf="showNameInput" class="name-input-container fixed-bottom">
+        <button (click)="navigateToDashboard()" class="btn back-btn">Back</button>
+        <input [(ngModel)]="username" placeholder="Enter your name" class="username-input" (focus)="onFocusInput()" />
+        <button (click)="joinChat()" class="btn join-btn">Join Chat</button>
+    </div>
+
+    <!-- Chat Input and Send/Clear buttons -->
+    <div *ngIf="!showNameInput" class="chat-input-container fixed-bottom">
+        <input [(ngModel)]="message" placeholder="Type a message" (keyup)="onTyping()" class="message-input" />
+        <button (click)="sendMessage()" class="btn send-btn">Send</button>
+        <button (click)="clearMessage()" class="btn clear-btn">Clear</button>
+    </div>
+
+    <!-- Typing Indicator -->
+    <div *ngIf="typing" class="typing-indicator">
+        <strong>{{ typingUser }} is typing...</strong>
+    </div>
+
+    <!-- Leave Chat button - Visible only after joining -->
+    <button *ngIf="!showNameInput" (click)="leaveChat()" class="btn leave-btn">Leave Chat</button>
+</div>

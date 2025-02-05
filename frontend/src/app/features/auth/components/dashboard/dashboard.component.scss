@@ -434,5 +434,37 @@ body.modal-open {
     max-width: 90%; /* Ensure responsiveness */
     padding: 15px;
   }
+  .chat-icon {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    border-radius: 50px; /* More oval shape */
+    width: auto; /* Adjust width to fit text */
+    height: 50px;
+    padding: 10px 20px; /* Add padding for spacing */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #8feef3; /* Violet Background */
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Optional shadow */
+    border: none;
+    transition: all 0.3s ease;
+    gap: 8px; /* Space between icon and text */
+    border: black;
+  }
+  
+  .chat-icon i {
+    font-size: 1.5rem; /* Adjust icon size */
+    border: black;
+  }
+  
+  .chat-icon:hover {
+    background-color: #9adde8; /* Darker shade on hover */
+    transform: translateY(-4px); /* Adds slight floating effect */
+  }
+  
   
   

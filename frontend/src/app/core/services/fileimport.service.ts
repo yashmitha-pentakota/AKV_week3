@@ -7,8 +7,8 @@ import { Observable } from 'rxjs';
 })
 export class FileimportService {
 
-  private apiUrl = 'http://localhost:3000/api/files/progress';  // Adjust the URL based on your server configuration
-  private retryUrl = 'http://localhost:3000/api/files/retry'; 
+  private apiUrl = 'http://localhost:5000/api/files/progress';  // Adjust the URL based on your server configuration
+  private retryUrl = 'http://localhost:5000/api/files/retry'; 
 
   constructor(private http: HttpClient) {}
 

@@ -140,38 +140,47 @@ module.exports = {
 
   async getProducts(req, res) {
     try {
-      let { page = 1, limit = 10 } = req.query;
-
-      page = parseInt(page); 
-      limit = parseInt(limit); 
+      console.log('req.query:', req.query);
+      const { page = 1, limit = 10 } = req.query;
       const offset = (page - 1) * limit;
-
+  
+      console.log('limit:', limit);
+      console.log('offset:', offset);
+  
+      // Get all records with necessary joins
       const allProducts = await knex('products')
         .join('categories', 'products.category_id', '=', 'categories.category_id')
         .leftJoin('product_to_vendor', 'products.product_id', '=', 'product_to_vendor.product_id')
         .leftJoin('vendors', 'product_to_vendor.vendor_id', '=', 'vendors.vendor_id')
         .select('products.*', 'categories.category_name', 'vendors.vendor_name')
-        .where('products.status', 1); 
-
+        .where('products.status', 1);
+  
+      // Group vendors by product and eliminate duplicates
       const groupedProducts = allProducts.reduce((acc, product) => {
         const { product_id, vendor_name, ...productData } = product;
-
+  
         if (!acc[product_id]) {
           acc[product_id] = { ...product, vendors: [] };
         }
-
+  
         if (vendor_name) {
-          acc[product_id].vendors.push(vendor_name);
+          // Use a Set to ensure vendors are unique
+          acc[product_id].vendors = [...new Set([...acc[product_id].vendors, vendor_name])];
         }
-
+  
         return acc;
       }, {});
-
+  
+      // Convert the grouped products back to an array
       const productList = Object.values(groupedProducts);
-
+  
+      // Pagination in-memory
       const totalItems = productList.length;
-      const paginatedProducts = productList.slice(offset, offset + limit);
-
+      console.log(totalItems, 'totalItems');
+      const paginatedProducts = productList.slice(offset, (offset + parseInt(limit)));
+      console.log('products array:', paginatedProducts);
+  
+      // Send the paginated products and total count back
       res.json({
         products: paginatedProducts,
         totalItems,
@@ -182,7 +191,6 @@ module.exports = {
       res.status(500).json({ message: 'Error fetching products' });
     }
   },
-
   async addProduct(req, res, next) {
     try {
       const { productName, category, vendor, quantity, unitPrice, unit, status } = req.body;
