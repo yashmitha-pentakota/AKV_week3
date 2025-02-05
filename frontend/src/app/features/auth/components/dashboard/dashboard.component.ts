@@ -97,7 +97,7 @@ isModalOpenprofile=false;
   //files import
   file: File | null = null;
 
-  constructor(private http: HttpClient, private fb: FormBuilder , private router: Router ) {  //,private chatService: ChatService
+  constructor(private http: HttpClient, private fb: FormBuilder , private router: Router,private chatService: ChatService ) { 
     this.addProductForm = this.fb.group({
       productName: ['', Validators.required],
       category: ['', Validators.required],
@@ -209,15 +209,77 @@ isModalOpenprofile=false;
       });
   }
 
-  updateQuantity(product: any, change: number): void {
-    const newQuantity = product.quantity + change;
-    if (newQuantity >= 0) {
-      product.quantity = newQuantity;
-      const initialQuantity = product.initialQuantity || product.quantity;
-      this.quantityChanges[product.product_id] = newQuantity - initialQuantity;
-    }
+  updateQuantity(product:any, change: number): void {
+    console.log(change);
+    console.log(product.quantity_in_stock);
+    const var1 = product.quantity + change;
+    console.log(product.quantity);
+    console.log('newQuantity in cart:', var1);
+    product.quantity = var1;
+     const diff=change;
+
+    const payload = {
+      productId:product.product_id,
+      diff: diff,
+    };
+
+
+    this.http
+    .put<any>(`${environment.apiUrl}/auth/update-cart-quantity`, {payload})
+    .subscribe({
+      next: (response) => {
+        console.log('Cart quantity updated successfully:', response);
+        this.fetchCartPage(this.currentCartPage); 
+        this.loadProducts();
+        this.quantityChanges = {}; 
+      },
+      error: (error) => {
+        console.error('Error updating cart items quantity:', error);
+      },
+    });
+
+
   }
 
+  applyQuantityChanges(): void {
+    const updatedProducts = Object.keys(this.quantityChanges)
+      .filter((product_id) => this.quantityChanges[+product_id] !== 0) 
+      .map((product_id) => ({
+        productId: +product_id,
+        changeInQuantity: this.quantityChanges[+product_id],
+      }));
+
+    if (updatedProducts.length > 0) {
+      this.http
+        .put<any>(`${environment.apiUrl}/auth/cart/update`, updatedProducts)
+        .subscribe({
+          next: (response) => {
+            console.log('Cart items updated successfully:', response);
+            this.fetchCartPage(this.currentCartPage); 
+            this.loadProducts();
+            this.quantityChanges = {}; 
+          },
+          error: (error) => {
+            console.error('Error updating cart items:', error);
+          },
+        });
+    }
+
+  }
+
+  adjustQuantity(product: product, change: number): void {
+  const newQuantity = product.quantity_in_stock + change;
+  console.log('new quantity',newQuantity);
+
+  // Ensure the new quantity does not exceed stock and is not negative
+  if (newQuantity >= 0 && newQuantity <= product.quantity_in_stock) {
+    product.quantity_in_stock = newQuantity;
+  } else if (newQuantity > product.quantity_in_stock) {
+    alert(`You cannot exceed the available stock (${product.quantity_in_stock}).`);
+  } else if (newQuantity < 0) {
+    alert('Quantity cannot be negative.');
+  }
+  }
   moveSelectedProducts(): void {
     const selectedProducts = this.selectedProducts
       .filter((product) => product.isSelected)
@@ -265,13 +327,6 @@ isModalOpenprofile=false;
       });
   }
   uploadData() {}
-
-  adjustQuantity(product: any, change: number): void {
-    const newQuantity = product.quantity_in_stock + change;
-    if (newQuantity >= 0 && newQuantity <= product.quantity_in_stock) {
-      product.quantity_in_stock = newQuantity;
-    }
-  }
 
   clearSelectedProducts() {
     this.selectedProducts = [];

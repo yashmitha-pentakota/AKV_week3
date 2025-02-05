@@ -179,56 +179,159 @@ async function getCartItems(req, res) {
         res.status(500).json({ success: false, message: 'Internal Server Error' });
       }
 }
+async  function updateCartQty(req, res) {
+  try {
+    const { productId, diff } = req.body.payload; // Receive the product ID and diff from the request body
+    const userId = req.user.id;
 
+
+    console.log('Product ID:', productId);
+    console.log('Difference:', diff);
+    console.log(userId);
+
+    // Start a transaction
+    const trx = await knex.transaction();
+
+    try {
+      // Fetch the current product details from the products table
+      const product = await trx('products').where('product_id', productId).first();
+      if (!product) {
+        throw { success: false, status: 404, error: 'Product not found', productId };
+      }
+
+      // Update the quantity_in_stock in the products table
+      const newStock = product.quantity_in_stock - diff; // Add the diff to the stock
+      if (newStock < 0) {
+        throw { success: false, status: 400, error: 'Insufficient stock', productId };
+      }
+      console.log('newstock', newStock);
+
+      await trx('products')
+        .where('product_id', productId)
+        .update({ quantity_in_stock: newStock });
+
+      // Fetch the current cart item details
+      const cartItem = await trx('carts')
+        .where('product_id', productId)
+        .andWhere('user_id', userId)
+        .first();
+
+      if (!cartItem) {
+        throw { success: false, status: 404, error: 'Cart item not found', productId };
+      }
+
+      // Update the quantity in the cart table
+      const updatedCartQuantity = cartItem.quantity + diff; // Reduce the quantity in the cart by the diff
+      if (updatedCartQuantity < 0) {
+        throw { success: false, status: 400, error: 'Invalid cart quantity', productId };
+      }
+      console.log('****',updatedCartQuantity);
+
+      await trx('carts')
+        .where('product_id', productId)
+        .andWhere('user_id', userId)
+        .update({ quantity: updatedCartQuantity });
+
+      // Commit the transaction
+      await trx.commit();
+
+      return res.status(200).json({
+        message: 'Cart and product updated successfully',
+        productId,
+        newStock,
+        updatedCartQuantity,
+      });
+    } catch (error) {
+      // Rollback the transaction on error
+      await trx.rollback();
+      console.error('Transaction error:', error);
+
+      if (error.success === false) {
+        return res.status(error.status).json({ error: error.error, productId: error.productId });
+      }
+
+      throw error; // Rethrow unexpected errors
+    }
+  } catch (error) {
+    console.error('Error updating cart and product quantities:', error);
+    return res.status(500).json({ error: 'Failed to update cart and product quantities' });
+  }
+}
 // Update cart item quantities
 async function updateCartItemQuantity(req, res) {
+
+  try {
+    const userId = req.user.id;
+    console.log(req.user)
+    const parsedData = req.body
+    // Start a transaction
+    const trx = await knex.transaction();
+
     try {
-        const userId = req.user.id;
-        const { products } = req.body;
+      for (const { productId, quantity } of parsedData.products) {
+        console.log("Product_Id:", productId);
+        console.log("quantity:", quantity);
+        console.log("UserId:", userId);
 
-        if (!Array.isArray(products) || products.length === 0) {
-            return res.status(400).json({ error: 'Invalid request body. Products array is required.' });
+        // Fetch current product details from the products table
+        const product = await trx('products').where('product_id', productId).first();
+        if (!product) {
+          throw { success: false, status: 404, error: 'Product not found', productId };
         }
 
-        const trx = await knex.transaction();
-
-        try {
-            for (const { productId, quantity } of products) {
-                // Fetch current product details
-                const product = await trx('products').where('product_id', productId).first();
-                if (!product) throw new Error(`Product with ID ${productId} not found.`);
-
-                // Calculate new stock
-                const newStock = product.quantity_in_stock - quantity;
-                if (newStock < 0) throw new Error('Not enough stock available.');
-
-                // Fetch current cart item details
-                const cartItem = await trx('carts')
-                    .where('product_id', productId)
-                    .andWhere('user_id', userId)
-                    .first();
-                if (!cartItem) throw new Error('Cart item not found.');
-
-                // Update cart and product tables
-                await trx('carts')
-                    .where('product_id', productId)
-                    .andWhere('user_id', userId)
-                    .update({ quantity: cartItem.quantity + quantity });
-
-                await trx('products')
-                    .where('product_id', productId)
-                    .update({ quantity_in_stock: newStock });
-            }
-
-            await trx.commit();
-            res.status(200).json({ message: 'Cart and product quantities updated successfully' });
-        } catch (error) {
-            await trx.rollback();
-            res.status(400).json({ error: error.message });
+        // Calculate the new stock based on change in quantity
+        const newStock = product.quantity_in_stock - quantity;
+        if (newStock < 0) {
+          throw { success: false, status: 400, error: 'Not enough stock available', productId };
         }
+
+        // Fetch current cart item details
+        const cartItem = await trx('carts')
+          .where('product_id', productId)
+          .andWhere('user_id', userId)
+          .first();
+
+        if (!cartItem) {
+          throw { success: false, status: 404, error: 'Cart item not found', productId };
+        }
+
+        // Calculate the updated cart quantity
+        const updatedCartQuantity = cartItem.quantity + quantity;
+
+        if (updatedCartQuantity < 0) {
+          throw { success: false, status: 400, error: 'Invalid cart quantity', productId };
+        }
+
+        // Update the quantity in the cart table
+        await trx('carts')
+          .where('product_id', productId)
+          .andWhere('user_id', userId)
+          .update({ quantity: updatedCartQuantity });
+
+        // Update the product's stock in the products table
+        await trx('products')
+          .where('product_id', productId)
+          .update({ quantity_in_stock: newStock });
+      }
+
+      // Commit the transaction if all operations succeed
+      await trx.commit();
+
+      return res.status(200).json({ message: 'Cart and product updated successfully' });
     } catch (error) {
-        res.status(500).json({ error: 'Internal Server Error', details: error.message });
+      await trx.rollback();
+      console.error('Transaction error:', error);
+
+      if (error.success === false) {
+        return res.status(error.status).json({ error: error.error, productId: error.productId });
+      }
+
+      throw error; // Rethrow unexpected errors
     }
+  } catch (error) {
+    console.error('Error in updating cart items and products:', error);
+    return res.status(500).json({ error: 'Failed to update cart items and products' });
+  }
 }
 
 // Delete cart item

@@ -287,7 +287,6 @@ body.modal-open {
 /* Filter Dropdown */
 .filter-dropdown {
   position: relative;
-  z-index: 2000;
 }
 
 .filter-menu {
@@ -465,6 +464,10 @@ body.modal-open {
     background-color: #9adde8; /* Darker shade on hover */
     transform: translateY(-4px); /* Adds slight floating effect */
   }
-  
-  
+  .blur-background {
+    filter: blur(5px);
+  }
+
+
+    
   
