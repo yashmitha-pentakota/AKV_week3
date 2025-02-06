@@ -45,7 +45,11 @@ const routes: Routes = [
     HttpClientModule,
      BrowserAnimationsModule, 
      FormsModule,
-     ToastrModule.forRoot(),
+     ToastrModule.forRoot({
+      timeOut: 3000, // Duration in milliseconds
+      positionClass: 'toast-top-right', // Position of the toast
+      preventDuplicates: true, // Prevent duplicate toasts
+    }),
      CommonModule,
      ReactiveFormsModule,
      RouterModule.forRoot(routes)

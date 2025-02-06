@@ -43,7 +43,7 @@ io.on('connection', (socket) => {
   // Handle user joining
   socket.on('joinRoom', (username) => {
     users[username] = socket.id;
-    io.emit('message', { sender: 'System', content: `${username} joined the chat` });
+    io.emit('message', { sender: '', content: `${username} joined the chat` });
     io.emit('onlineUsers', Object.keys(users));
   });
 
@@ -124,4 +124,3 @@ server.listen(PORT, () => {
     // Set interval to run every 10 minutes
     setInterval(() => processPendingFiles(), 10 * 60 * 1000);
 });
-

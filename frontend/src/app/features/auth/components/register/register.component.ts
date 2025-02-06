@@ -1,25 +1,23 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from 'src/app/core/services/auth.service';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-register',
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss'],
-
 })
 export class RegisterComponent {
   signupForm: FormGroup;
 
- constructor(
+  constructor(
     private fb: FormBuilder,
     private router: Router,
     private authService: AuthService,
-    //private toastr: ToastrService
- )
- {
+    private toastr: ToastrService
+  ) {
     this.signupForm = this.fb.group({
       first_name: ['', Validators.required],
       last_name: ['', Validators.required],
@@ -36,31 +34,23 @@ export class RegisterComponent {
   }
 
   onSubmit(): void {
-    
     if (this.signupForm.valid) {
-      // Extract form values
       const userData = this.signupForm.value;
-      console.log("userdata",userData);
+      console.log('userdata', userData);
 
-
-      // Call the register method of AuthService
       this.authService.register(userData).subscribe(
-        (response) => {
-          // Redirect to login after successful registration
-          alert('Register successful!');
+        () => {
+          this.toastr.success('Registration successful!', 'Success');
           this.router.navigate(['/login']);
-         
         },
-       (error) => {
-    // Check if the error indicates that the user already exists
-    if (error.status === 500) { // Assuming 409 Conflict status code for existing user
-      alert('User already exists. Please use a different email.');
-    } else {
-      // Handle other errors
-      alert('Registration failed. Please check your credentials and try again.');
-    }
-    console.error('Registration failed', error);
-  }
+        (error) => {
+          if (error.status === 500) {
+            this.toastr.error('User already exists. Please use a different email.', 'Error');
+          } else {
+            this.toastr.error('Registration failed. Please try again.', 'Error');
+          }
+          console.error('Registration failed', error);
+        }
       );
     }
   }

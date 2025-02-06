@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from 'src/app/core/services/auth.service';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-reset-password',
@@ -16,7 +17,8 @@ export class ResetPasswordComponent implements OnInit {
     private fb: FormBuilder,
     private authService: AuthService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private toastr: ToastrService
   ) {
     this.resetForm = this.fb.group({
       newPassword: ['', Validators.required],
@@ -26,10 +28,9 @@ export class ResetPasswordComponent implements OnInit {
   ngOnInit(): void {
     this.token = this.route.snapshot.queryParamMap.get('token');
     if (!this.token) {
-      alert('Invalid or expired token');
+      this.toastr.error('Invalid or expired token', 'Error');
       this.router.navigate(['/login']);
-      console.log("Reset Token from URL:", this.token);  // In ngOnInit of ResetPasswordComponent
-
+      console.log("Reset Token from URL:", this.token);  // Debugging purpose
     }
   }
 
@@ -41,12 +42,12 @@ export class ResetPasswordComponent implements OnInit {
       };
 
       this.authService.resetPassword(passwordData).subscribe(
-        (response) => {
-          alert('Password successfully updated!');
+        () => {
+          this.toastr.success('Password successfully updated!', 'Success');
           this.router.navigate(['/login']);
         },
-        (error) => {
-          alert('Error resetting password.');
+        () => {
+          this.toastr.error('Error resetting password.', 'Error');
         }
       );
     }

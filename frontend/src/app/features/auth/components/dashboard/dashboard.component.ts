@@ -11,7 +11,7 @@ import * as bootstrap from 'bootstrap';
 import { Observable } from 'rxjs';
 import { Router}  from '@angular/router';
 import { ChatService } from 'src/app/core/services/chat.service';
-
+import {ToastrService } from 'ngx-toastr';
 
 
 @Component({
@@ -97,7 +97,7 @@ isModalOpenprofile=false;
   //files import
   file: File | null = null;
 
-  constructor(private http: HttpClient, private fb: FormBuilder , private router: Router,private chatService: ChatService ) { 
+  constructor(private http: HttpClient, private fb: FormBuilder , private router: Router,private chatService: ChatService , private toastr:ToastrService) { 
     this.addProductForm = this.fb.group({
       productName: ['', Validators.required],
       category: ['', Validators.required],
@@ -136,7 +136,7 @@ isModalOpenprofile=false;
   // Handle file upload
   uploadExcelFile(): void {
     if (!this.file) {
-      alert("Please select a file first.");
+      this.toastr.warning('Please select a file first.', 'Warning');
       return;
     }
 
@@ -275,9 +275,13 @@ isModalOpenprofile=false;
   if (newQuantity >= 0 && newQuantity <= product.quantity_in_stock) {
     product.quantity_in_stock = newQuantity;
   } else if (newQuantity > product.quantity_in_stock) {
-    alert(`You cannot exceed the available stock (${product.quantity_in_stock}).`);
+    this.toastr.error(`You cannot exceed the available stock (${product.quantity_in_stock}).`, 'Error', {
+      timeOut: 3000,
+    });
   } else if (newQuantity < 0) {
-    alert('Quantity cannot be negative.');
+    this.toastr.error('Quantity cannot be negative.', 'Error', {
+      timeOut: 3000,
+    });
   }
   }
   moveSelectedProducts(): void {
@@ -291,41 +295,35 @@ isModalOpenprofile=false;
           quantity: product.quantity_in_stock,
         };
       });
-
+  
     if (selectedProducts.length === 0) {
-      alert('Please select at least one product to move.');
+      this.toastr.warning('Please select at least one product to move.', 'Warning', { timeOut: 3000 });
       return;
     }
+  
     console.log('Selected products in frontend:', selectedProducts);
-    this.http
-      .post(`${environment.apiUrl}/auth/move-to-cart`, {
-        products: selectedProducts,
-      })
+  
+    this.http.post(`${environment.apiUrl}/auth/move-to-cart`, { products: selectedProducts })
       .subscribe({
-        next: (response) => {
-          // alert('Products moved successfully!');
-          this.http
-            .post(`${environment.apiUrl}/auth/cart/update`, {
-              products: selectedProducts,
-            })
+        next: () => {
+          this.http.post(`${environment.apiUrl}/auth/cart/update`, { products: selectedProducts })
             .subscribe({
-              next: (response) => {
-                alert(
-                  'Products moved successfully! And cart updated successfully!'
-                );
+              next: () => {
+                this.toastr.success('Products moved and cart updated successfully!', 'Success', { timeOut: 3000 });
               },
               error: (error) => {
-                alert('Failed to update cart.');
-                console.error('Error update cart:', error);
+                this.toastr.error('Failed to update cart.', 'Error', { timeOut: 3000 });
+                console.error('Error updating cart:', error);
               },
             });
         },
         error: (error) => {
-          alert('Failed to move products.');
+          this.toastr.error('Failed to move products.', 'Error', { timeOut: 3000 });
           console.error('Error moving products to cart:', error);
         },
       });
   }
+  
   uploadData() {}
 
   clearSelectedProducts() {
@@ -549,20 +547,18 @@ getFilteredProducts(searchTerm: string, columns: string): void {
   // Confirm the deletion of the product
   confirmDelete() {
     if (this.selectedProductId) {
-      this.http
-        .delete(`${environment.apiUrl}/auth/products/${this.selectedProductId}`)
-        .subscribe(
-          (response: any) => {
-            alert(response.message); // Success message from the backend
-            // Update the UI to reflect the deletion
-            this.getProducts();
-          },
-          (error) => {
-            alert('Failed to delete the product');
-            console.error(error);
-          }
-        );
-    }
+      this.http.delete(`${environment.apiUrl}/auth/products/${this.selectedProductId}`).subscribe(
+        (response: any) => {
+          this.toastr.success(response.message, 'Success', { timeOut: 3000 }); // Success message from backend
+          // Update the UI to reflect the deletion
+          this.getProducts();
+        },
+        (error) => {
+          this.toastr.error('Failed to delete the product', 'Error', { timeOut: 3000 });
+          console.error(error);
+        }
+      );
+    }  
 
     // Close the modal after the operation
     const modal = bootstrap.Modal.getInstance(
@@ -741,60 +737,55 @@ getFilteredProducts(searchTerm: string, columns: string): void {
   addProduct() {
     if (this.addProductForm.valid) {
       const productData = this.addProductForm.value;
-
-      this.http
-        .post(`${environment.apiUrl}/auth/products`, productData)
-        .subscribe(
-          (response: any) => {
-            console.log('Product added successfully:', response);
-            const newProduct = response.product;
-            this.products.push(newProduct); // Update the products array with the new product
-
-            if (this.selectedFile) {
-              const formData = new FormData();
-              formData.append('product_image', this.selectedFile);
-              formData.append('productId', newProduct.product_id); // Include product ID in the form data
-
-              const token = localStorage.getItem('token');
-              const headers = new HttpHeaders({
-                Authorization: `Bearer ${token}`,
-              });
-
-              this.isUploading = true;
-
-              this.http
-                .post(
-                  `${environment.apiUrl}/auth/upload-product-image`,
-                  formData,
-                  { headers }
-                )
-                .subscribe(
-                  (uploadResponse: any) => {
-                    console.log('File uploaded successfully:', uploadResponse);
-                    newProduct.product_image = uploadResponse.url; // Update the product image URL
-                    this.isUploading = false;
-                    this.closeProductModal();
-                    alert('Product added successfully!');
-                  },
-                  (error) => {
-                    console.error('Error uploading file:', error);
-                    this.isUploading = false;
-                  }
-                );
-            } else {
-              this.closeProductModal();
-              alert('Product added successfully!');
-            }
-          },
-
-          (error) => {
-            console.error('Error adding product:', error);
+  
+      this.http.post(`${environment.apiUrl}/auth/products`, productData).subscribe(
+        (response: any) => {
+          console.log('Product added successfully:', response);
+          const newProduct = response.product;
+          this.products.push(newProduct); // Update the products array with the new product
+  
+          if (this.selectedFile) {
+            const formData = new FormData();
+            formData.append('product_image', this.selectedFile);
+            formData.append('productId', newProduct.product_id); // Include product ID in the form data
+  
+            const token = localStorage.getItem('token');
+            const headers = new HttpHeaders({
+              Authorization: `Bearer ${token}`,
+            });
+  
+            this.isUploading = true;
+  
+            this.http.post(`${environment.apiUrl}/auth/upload-product-image`, formData, { headers }).subscribe(
+              (uploadResponse: any) => {
+                console.log('File uploaded successfully:', uploadResponse);
+                newProduct.product_image = uploadResponse.url; // Update the product image URL
+                this.isUploading = false;
+                this.closeProductModal();
+                this.toastr.success('Product added successfully!', 'Success', { timeOut: 3000 });
+              },
+              (error) => {
+                console.error('Error uploading file:', error);
+                this.isUploading = false;
+                this.toastr.error('Failed to upload product image. Please try again.', 'Error', { timeOut: 3000 });
+              }
+            );
+          } else {
+            this.closeProductModal();
+            this.toastr.success('Product added successfully!', 'Success', { timeOut: 3000 });
           }
-        );
+        },
+        (error) => {
+          console.error('Error adding product:', error);
+          this.toastr.error('Failed to add product. Please try again.', 'Error', { timeOut: 3000 });
+        }
+      );
     } else {
+      this.toastr.warning('Please fill out the form correctly.', 'Invalid Form', { timeOut: 3000 });
       console.error('Form is invalid');
     }
   }
+  
 
   saveProductData(productData: any) {
     this.http
@@ -909,9 +900,10 @@ getFilteredProducts(searchTerm: string, columns: string): void {
   // Upload the profile photo to the backend
   uploadProfilePhoto() {
     if (!this.selectedFile) {
-      alert('Please select a file first.');
+      this.toastr.warning('Please select a file first.', 'Warning', { timeOut: 3000 });
       return;
     }
+    
 
     const formData = new FormData();
     formData.append('profile_pic', this.selectedFile);
@@ -979,22 +971,23 @@ getFilteredProducts(searchTerm: string, columns: string): void {
 
   uploadFilesforimport(): void {
     if (!this.selectedFile) {
-      alert('Please select a file first.');
+      this.toastr.warning('Please select a file first.', 'Warning', { timeOut: 3000 });
       return;
     }
-    console.log('***',this.selectedFile);
-   
+  
+    console.log('***', this.selectedFile);
+  
     const formData = new FormData();
     formData.append('file', this.selectedFile);
-   
+  
     this.http.post(`${environment.apiUrl}/auth/import`, formData).subscribe({
       next: (response: any) => {
-        alert('File uploaded successfully, processing in background.');
+        this.toastr.success('File uploaded successfully, processing in background.', 'Success', { timeOut: 3000 });
         console.log('Response:', response);
       },
       error: (error) => {
         console.error('Error uploading file:', error);
-        alert('Failed to upload file.');
+        this.toastr.error('Failed to upload file.', 'Error', { timeOut: 3000 });
       },
     });
   }
