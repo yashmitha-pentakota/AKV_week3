@@ -1,25 +1,29 @@
-import { Component, OnInit, AfterViewChecked } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ChatService } from '../../core/services/chat.service';
-import { Router } from '@angular/router';
+import {Router} from '@angular/router';
+interface Message {
+  content: string;
+  sender: string;
+  system?: boolean; // Flag for system messages like "User joined"
+}
 
 @Component({
   selector: 'app-chat',
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss']
 })
-export class ChatComponent implements OnInit, AfterViewChecked {
-  messages: any[] = [];
-  username: string = '';
-  message: string = '';
-  typing: boolean = false;
-  typingUser: string = '';
+export class ChatComponent implements OnInit {
+  messages: Message[] = [];
   onlineUsers: string[] = [];
-  showNameInput: boolean = true;
+  typingStatus = '';
+  message = '';
+  username = '';
+  selectedUser = '';
+  chatType: 'group' | 'private' | '' = ''; // Controls UI visibility
 
-  constructor(private chatService: ChatService, private router: Router) {}
+  constructor(private chatService: ChatService, private router:  Router) {}
 
   ngOnInit(): void {
-    // Fetch messages and online users from the backend
     this.chatService.getMessages().subscribe(messages => {
       this.messages = messages;
     });
@@ -28,65 +32,49 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       this.onlineUsers = users;
     });
 
-    this.chatService.getTypingStatus().subscribe((typingMessage: string) => {
-      if (typingMessage) {
-        this.typingUser = typingMessage;
-        this.typing = true;
-      } else {
-        this.typingUser = '';
-        this.typing = false;
-      }
+    this.chatService.getTypingStatus().subscribe(status => {
+      this.typingStatus = status;
     });
   }
 
-  ngAfterViewChecked() {
-    this.scrollToBottom();
+  // User joins chat (either Group or Private)
+  joinChat(chatType: 'group' | 'private'): void {
+    if (this.username.trim()) {
+      this.chatType = chatType;
+      this.chatService.joinRoom(this.username);
+      
+    }
   }
 
-  joinChat() {
-    this.showNameInput = false;
-    this.chatService.joinRoom(this.username);
-  }
-
-  leaveChat() {
-    this.showNameInput = true;
+  leaveChat(): void {
     this.chatService.leaveRoom();
+    this.messages.push({ content: `${this.username} left the chat`, sender: 'System', system: true });
+    this.chatType = ''; // Reset UI to login screen
+    this.selectedUser = ''; // Reset selected user
   }
+  
 
-  sendMessage() {
+  sendMessage(): void {
     if (this.message.trim()) {
-      this.chatService.sendMessage(this.message, this.username);
-      this.message = ''; // Clear the input after sending
-      this.chatService.emitStopTyping(); // Notify the server that typing has stopped
+      if (this.chatType === 'group') {
+        this.chatService.sendGroupMessage(this.message, this.username);
+      } else if (this.chatType === 'private' && this.selectedUser) {
+        this.chatService.sendPrivateMessage(this.message, this.username, this.selectedUser);
+      }
+      this.message = '';
     }
   }
-
-  onTyping() {
-    if (this.message.trim()) {
-      this.chatService.emitTypingStatus(this.username); // Notify the server when user starts typing
+  onTyping(): void {
+    if (this.username && this.username.trim()) {
+      this.chatService.emitTyping(this.username);
     }
   }
+  
 
-  clearMessage() {
-    this.message = '';
-    this.chatService.emitStopTyping(); // Notify the server that typing has stopped
+  stopTyping(): void {
+    this.chatService.emitStopTyping();
   }
-
-  scrollToBottom() {
-    const chatContainer = document.getElementById('chatContainer');
-    if (chatContainer) {
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-  }
-
-  onFocusInput() {
-    const inputElement = document.querySelector('.username-input') as HTMLInputElement;
-    if (inputElement) {
-      inputElement.style.borderColor = '#4CAF50'; // Change border color on focus
-    }
-  }
-
-  navigateToDashboard() {
-    this.router.navigate(['/dashboard']);
+  goBack() {
+    this.router.navigate(['/dashboard']); // Adjust based on your dashboard route
   }
 }

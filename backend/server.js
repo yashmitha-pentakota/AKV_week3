@@ -35,48 +35,48 @@ app.use(morgan('dev'));
 app.use(bodyParser.urlencoded({ extended: true })); 
 app.use(cartRoutes);
 
-const onlineUsers = [];
+const users = {}; // Store users and their socket IDs
 
-// **Socket.io Logic**
 io.on('connection', (socket) => {
-  console.log(`A user connected: ${socket.id}`);
+  console.log('New user connected:', socket.id);
 
+  // Handle user joining
   socket.on('joinRoom', (username) => {
-    socket.username = username;
-    onlineUsers.push(username);
-    io.emit('onlineUsers', onlineUsers);
-    io.emit('message', { sender: '', content: `${username} has joined the chat` });
+    users[username] = socket.id;
+    io.emit('message', { sender: 'System', content: `${username} joined the chat` });
+    io.emit('onlineUsers', Object.keys(users));
   });
 
-  socket.on('leaveRoom', () => {
-    const index = onlineUsers.indexOf(socket.username);
-    if (index > -1) {
-      onlineUsers.splice(index, 1);
+  // Handle group messages
+  socket.on('sendMessage', (data) => {
+    io.emit('message', data);
+  });
+
+  // Handle private messages
+  socket.on('privateMessage', ({ sender, receiver, content }) => {
+    if (users[receiver]) {
+      io.to(users[receiver]).emit('privateMessage', { sender, content });
     }
-    io.emit('onlineUsers', onlineUsers);
-    io.emit('message', { sender: '', content: `${socket.username} has left the chat` });
   });
 
-  socket.on('sendMessage', (message, username) => {
-    console.log(message);
-    io.emit('message', { sender: username, content: message.content });
-  });
-
+  // Handle typing
   socket.on('typing', (username) => {
     socket.broadcast.emit('userTyping', username);
   });
 
+  // Handle stop typing
   socket.on('stopTyping', () => {
     socket.broadcast.emit('userStopTyping');
   });
 
+  // Handle user disconnect
   socket.on('disconnect', () => {
-    const index = onlineUsers.indexOf(socket.username);
-    if (index > -1) {
-      onlineUsers.splice(index, 1);
+    let username = Object.keys(users).find((key) => users[key] === socket.id);
+    if (username) {
+      delete users[username];
+      io.emit('message', { sender: 'System', content: `${username} left the chat` });
+      io.emit('onlineUsers', Object.keys(users));
     }
-    io.emit('onlineUsers', onlineUsers);
-    console.log(`User ${socket.id} disconnected`);
   });
 });
 

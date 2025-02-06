@@ -2,10 +2,10 @@ import { Injectable } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { BehaviorSubject } from 'rxjs';
 
-// Define message structure
 interface Message {
   content: string;
   sender: string;
+  type: 'join' | 'leave' | 'message';
 }
 
 @Injectable({
@@ -13,25 +13,25 @@ interface Message {
 })
 export class ChatService {
   private socket: Socket;
+  private messagesSubject = new BehaviorSubject<Message[]>([]);
   private onlineUsersSubject = new BehaviorSubject<string[]>([]);
-  private messageSubject = new BehaviorSubject<Message[]>([]);
-  typingSubject = new BehaviorSubject<string>('');
+  private typingSubject = new BehaviorSubject<string>('');
+  private currentUser: string = '';
 
   constructor() {
     this.socket = io('http://localhost:5001', {
       transports: ['websocket', 'polling'],
-      withCredentials: true  // Add credentials if necessary (for cross-origin issues)
+      withCredentials: true
     });
-    
 
-    // Listen for new messages
+    // Listen for messages
     this.socket.on('message', (message: Message) => {
-      this.messageSubject.next([...this.messageSubject.getValue(), message]);
+      this.messagesSubject.next([...this.messagesSubject.getValue(), message]);
     });
 
-    // Listen for online users updates
-    this.socket.on('onlineUsers', (users: string[]) => {
-      this.onlineUsersSubject.next(users);
+    // Listen for private messages
+    this.socket.on('privateMessage', (message: Message) => {
+      this.messagesSubject.next([...this.messagesSubject.getValue(), message]);
     });
 
     // Listen for typing status
@@ -39,34 +39,37 @@ export class ChatService {
       this.typingSubject.next(`${username} is typing...`);
     });
 
-    // Listen for stop typing status
     this.socket.on('userStopTyping', () => {
       this.typingSubject.next('');
     });
+
+    // Listen for online users
+    this.socket.on('onlineUsers', (users: string[]) => {
+      this.onlineUsersSubject.next(users);
+    });
   }
 
-  // Send message to the backend
-  sendMessage(message: string, username: string): void {
-    console.log(message);
+  setUsername(username: string) {
+    this.currentUser = username;
+  }
+
+  // Send group message
+  sendGroupMessage(message: string, username: string): void {
     this.socket.emit('sendMessage', { content: message, sender: username });
   }
 
-  // Emit typing status to the backend
-  emitTypingStatus(username: string): void {
-    this.socket.emit('typing', username);
+  // Send private message
+  sendPrivateMessage(message: string, sender: string, receiver: string): void {
+    this.socket.emit('privateMessage', { sender, receiver, content: message });
   }
+  
 
-  // Emit stop typing status
-  emitStopTyping(): void {
-    this.socket.emit('stopTyping');
-  }
-
-  // Fetch the messages
+  // Fetch messages
   getMessages() {
-    return this.messageSubject.asObservable();
+    return this.messagesSubject.asObservable();
   }
 
-  // Fetch the online users
+  // Fetch online users
   getOnlineUsers() {
     return this.onlineUsersSubject.asObservable();
   }
@@ -76,13 +79,23 @@ export class ChatService {
     return this.typingSubject.asObservable();
   }
 
-  // Join the room
+  // Emit typing status
+  emitTyping(username: string): void {
+    this.socket.emit('typing', username);
+  }
+  
+  // Emit stop typing status
+  emitStopTyping(): void {
+    this.socket.emit('stopTyping');
+  }
+
+  // Join chat room
   joinRoom(username: string): void {
     this.socket.emit('joinRoom', username);
   }
-
-  // Leave the room
+  
+  // Leave chat room
   leaveRoom(): void {
-    this.socket.emit('leaveRoom');
+    this.socket.emit('leaveRoom', { username: this.currentUser, type: 'leave' });
   }
 }

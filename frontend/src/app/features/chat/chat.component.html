@@ -1,34 +1,50 @@
 <div class="chat-container">
-    <!-- Title section -->
-    <h2 class="chat-title">Live Chat</h2>
-
-    <!-- Chat messages display -->
-    <div class="messages-container" id="chatContainer">
-        <div *ngFor="let message of messages">
-            <div [ngClass]="{'user-message': message.sender !== 'System', 'system-message': message.sender === 'System'}">
-                <strong>{{ message.sender }}</strong> {{ message.content }}
-            </div>            
-        </div>
+    <!-- Step 1: Enter Username -->
+    <div *ngIf="!chatType" class="join-chat">
+      <div class="chat-header">
+        <h2>Join Chat</h2>
+      </div>
+      
+      <input [(ngModel)]="username" placeholder="Enter your name..." />
+      <button (click)="joinChat('group')">Group Chat</button>
+      <button (click)="joinChat('private')">Private Chat</button>
+      <button (click)="goBack()" class="back-button">⬅Back</button>
     </div>
-      <!-- Name Input (when joining) -->
-    <div *ngIf="showNameInput" class="name-input-container fixed-bottom">
-        <button (click)="navigateToDashboard()" class="btn back-btn">Back</button>
-        <input [(ngModel)]="username" placeholder="Enter your name" class="username-input" (focus)="onFocusInput()" />
-        <button (click)="joinChat()" class="btn join-btn">Join Chat</button>
+  
+    <!-- Step 2: Chat Interface -->
+    <div *ngIf="chatType" class="chat-area">
+      <div class="header">
+        <h3 *ngIf="chatType === 'group'">Group Chat</h3>
+        <h3 *ngIf="chatType === 'private'">Private Chat with {{ selectedUser || '...' }}</h3>
+        <button (click)="leaveChat()">Leave Chat</button>
+      </div>
+  
+      <!-- Message Display -->
+      <div class="messages-container">
+        <div *ngFor="let msg of messages" 
+             [ngClass]="{'my-message': msg.sender === username, 'other-message': msg.sender !== username, 'system-message': msg.system}">
+          
+          <!-- Regular Messages -->
+          <p *ngIf="!msg.system">
+            <strong>{{ msg.sender }}:</strong> {{ msg.content }}
+          </p>
+          
+          <!-- System Messages (Centered, No "System:" Prefix) -->
+          <p *ngIf="msg.system" class="system-text">
+            {{ msg.content }}
+          </p>
+        </div>          
+      </div>
+      
+  
+      <p class="typing">{{ typingStatus }}</p>
+  
+      <!-- Chat Input -->
+      <div class="message-input">
+        <input [(ngModel)]="message" (input)="onTyping()" (blur)="stopTyping()" placeholder="Type a message..." />
+        <button (click)="sendMessage()">
+          <i class="fa fa-paper-plane"></i>
+        </button>
+      </div>
     </div>
-
-    <!-- Chat Input and Send/Clear buttons -->
-    <div *ngIf="!showNameInput" class="chat-input-container fixed-bottom">
-        <input [(ngModel)]="message" placeholder="Type a message" (keyup)="onTyping()" class="message-input" />
-        <button (click)="sendMessage()" class="btn send-btn">Send</button>
-        <button (click)="clearMessage()" class="btn clear-btn">Clear</button>
-    </div>
-
-    <!-- Typing Indicator -->
-    <div *ngIf="typing" class="typing-indicator">
-        <strong>{{ typingUser }} is typing...</strong>
-    </div>
-
-    <!-- Leave Chat button - Visible only after joining -->
-    <button *ngIf="!showNameInput" (click)="leaveChat()" class="btn leave-btn">Leave Chat</button>
-</div>
+  </div>
